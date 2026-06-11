@@ -21,10 +21,10 @@ export const client = new ConvexHttpClient(convexUrl);
 /**
  * Tool to fetch Story Bible entities.
  */
-export function resolveUserId(providedId?: string): string {
-  const userId = providedId || process.env.SCRIBE_TEST_USER_ID;
+export function resolveUserId(providedId?: string, tool_context?: any): string {
+  const userId = providedId || tool_context?.userId || process.env.SCRIBE_TEST_USER_ID;
   if (!userId) {
-    throw new Error('No userId provided and SCRIBE_TEST_USER_ID not set in .env');
+    throw new Error('No userId provided, not found in context, and SCRIBE_TEST_USER_ID not set in .env');
   }
   return userId;
 }
@@ -38,9 +38,9 @@ export const getStoryBibleTool = new FunctionTool({
   parameters: z.object({
     userId: z.string().optional().describe('The unique tokenIdentifier or Clerk ID of the user. Optional, defaults to the test user.'),
   }) as any,
-  execute: async ({ userId }: any) => {
+  execute: async ({ userId }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] get_story_bible for user ${resolvedId}`);
       const entities = await client.query('scribe:getEntities' as any, { userId: resolvedId, secretKey });
       return { status: 'success', entities };
@@ -65,9 +65,9 @@ export const updateStoryBibleTool = new FunctionTool({
     appearance: z.string().optional().describe('Visual appearance details (e.g., "Tall, red hair").'),
     alias: z.array(z.string()).optional().describe('Alternative names or aliases for the entity.'),
   }) as any,
-  execute: async ({ userId, name, category, description, appearance, alias }: any) => {
+  execute: async ({ userId, name, category, description, appearance, alias }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] update_story_bible for user ${resolvedId}, entity: ${name}`);
       const entityId = await client.mutation('scribe:updateEntity' as any, {
         userId: resolvedId,
@@ -96,9 +96,9 @@ export const archiveEntityTool = new FunctionTool({
     userId: z.string().optional().describe('The unique tokenIdentifier or Clerk ID of the user. Optional, defaults to the test user.'),
     id: z.string().describe('The Convex _id of the entity to archive.'),
   }) as any,
-  execute: async ({ userId, id }: any) => {
+  execute: async ({ userId, id }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] archive_entity for user ${resolvedId}, id: ${id}`);
       await client.mutation('scribe:archiveEntity' as any, { userId: resolvedId, secretKey, id: id as any });
       return { status: 'success' };
@@ -118,9 +118,9 @@ export const getAllChaptersTool = new FunctionTool({
   parameters: z.object({
     userId: z.string().optional().describe('The unique tokenIdentifier or Clerk ID of the user. Optional, defaults to the test user.'),
   }) as any,
-  execute: async ({ userId }: any) => {
+  execute: async ({ userId }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] get_all_chapters for user ${resolvedId}`);
       const chapters = await client.query('scribe:getChapters' as any, { userId: resolvedId, secretKey });
       return { status: 'success', chapters };
@@ -141,9 +141,9 @@ export const getChapterByIdTool = new FunctionTool({
     userId: z.string().optional().describe('The unique tokenIdentifier or Clerk ID of the user. Optional, defaults to the test user.'),
     clientId: z.string().describe('The clientId of the chapter to fetch.'),
   }) as any,
-  execute: async ({ userId, clientId }: any) => {
+  execute: async ({ userId, clientId }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] get_chapter_by_id for user ${resolvedId}, clientId: ${clientId}`);
       const chapter = await client.query('scribe:getChapterByClientId' as any, { userId: resolvedId, secretKey, clientId });
       if (!chapter) {
@@ -186,9 +186,9 @@ export const syncChapterTool = new FunctionTool({
     images,
     transcriptionNotes,
     order
-  }: any) => {
+  }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] sync_chapter for user ${resolvedId}, chapter: ${title}`);
       const chapterId = await client.mutation('scribe:syncChapter' as any, {
         userId: resolvedId,
@@ -223,9 +223,9 @@ export const updateChapterContentTool = new FunctionTool({
     clientId: z.string().describe('The clientId of the chapter to update.'),
     content: z.string().describe('The new polished draft text for the chapter.'),
   }) as any,
-  execute: async ({ userId, clientId, content }: any) => {
+  execute: async ({ userId, clientId, content }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] update_chapter_content for user ${resolvedId}, clientId: ${clientId}, content length: ${content?.length || 0}`);
       const chapterId = await client.mutation('scribe:updateChapterContent' as any, {
         userId: resolvedId,
@@ -250,9 +250,9 @@ export const getUserProfileTool = new FunctionTool({
   parameters: z.object({
     userId: z.string().optional().describe('The unique tokenIdentifier or Clerk ID of the user. Optional, defaults to the test user.'),
   }) as any,
-  execute: async ({ userId }: any) => {
+  execute: async ({ userId }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] get_user_profile for user ${resolvedId}`);
       const profile = await client.query('scribe:getUserProfile' as any, { userId: resolvedId, secretKey });
       return { status: 'success', profile };
@@ -266,9 +266,9 @@ export const getUserProfileTool = new FunctionTool({
 /**
  * Helper to fetch file URL from Convex Storage ID.
  */
-export async function getFileUrl(userId: string | undefined, storageId: string): Promise<string | null> {
+export async function getFileUrl(userId: string | undefined, storageId: string, tool_context?: any): Promise<string | null> {
   try {
-    const resolvedId = resolveUserId(userId);
+    const resolvedId = resolveUserId(userId, tool_context);
     return await client.query('scribe:getFileUrl' as any, { userId: resolvedId, secretKey, storageId });
   } catch (error) {
     console.error(`[dbTools] Failed to get file URL:`, error);
@@ -295,9 +295,9 @@ export const saveProseStyleTool = new FunctionTool({
     povDistance: z.enum(['intimate', 'reflective']).describe('POV distance: intimate (close first-person) or reflective (distanced narrator).'),
     humour: z.enum(['earnest', 'wry']).describe('Tonal personality: earnest (reverent) or wry (self-deprecating wit).'),
   }) as any,
-  execute: async ({ userId, ...styleFields }: any) => {
+  execute: async ({ userId, ...styleFields }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] save_prose_style for user ${resolvedId}`);
       const result = await client.mutation('scribe:saveProseStyle' as any, {
         userId: resolvedId,
@@ -321,9 +321,9 @@ export const getProseStyleTool = new FunctionTool({
   parameters: z.object({
     userId: z.string().optional().describe('The unique tokenIdentifier or Clerk ID of the user. Optional, defaults to the test user.'),
   }) as any,
-  execute: async ({ userId }: any) => {
+  execute: async ({ userId }: any, tool_context?: any) => {
     try {
-      const resolvedId = resolveUserId(userId);
+      const resolvedId = resolveUserId(userId, tool_context);
       console.log(`[dbTools] get_prose_style for user ${resolvedId}`);
       const proseStyle = await client.query('scribe:getProseStyle' as any, { userId: resolvedId, secretKey });
       return { status: 'success', proseStyle };

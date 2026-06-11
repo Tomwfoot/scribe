@@ -103,10 +103,10 @@ export const transcribeAudioTool = new FunctionTool({
     language: z.string().optional().describe('The language code (e.g., "en-US", "en-GB"). Defaults to "en-US".'),
     storyBibleText: z.string().optional().describe('Context from the Story Bible to maintain factual consistency.'),
   }) as any,
-  execute: async ({ userId, storageId, mode, language = 'en-US', storyBibleText = '' }: any) => {
+  execute: async ({ userId, storageId, mode, language = 'en-US', storyBibleText = '' }: any, tool_context?: any) => {
     try {
       console.log(`[aiTools] transcribe_audio for storageId ${storageId}`);
-      const fileUrl = await getFileUrl(userId, storageId);
+      const fileUrl = await getFileUrl(userId, storageId, tool_context);
       if (!fileUrl) {
         throw new Error(`Failed to retrieve file URL for storageId: ${storageId}`);
       }
